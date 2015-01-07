@@ -1,5 +1,5 @@
 
-let DEFAULT_ATOM_SIZE = 32u;
+static DEFAULT_ATOM_SIZE: uint = 32;
 
 enum SymbolicExpr {
     Number(f64),
@@ -48,15 +48,17 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
             None => {
                 if(state != State::Start) {
                     match (to_atom(state, accum.to_slice())) {
-                        Ok(sexpr) => exprs.push(sexpr);
+                        Ok(sexpr) => {
+                            exprs.push(sexpr);
+                        }
                         e @ Err(_) => return e
                     }
-                    return Ok(exprs)
                 }
+                return Ok(exprs)
             }
 
             // Whitespace which can only terminate atoms
-            Some(' ') | Some('\f') | Some('\n')| Some('\r') | Some('\t') | Some('\v') => {
+            Some(' ') | Some('\n')| Some('\r') | Some('\t') => {
                 if(state != State::Start) {
                     match (to_atom(state, accum.to_slice())) {
                         Ok(sexpr) => {
@@ -122,14 +124,13 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
                         accum.push(c);
                     }
 
-                    (State::Integer, _) | (State::Floating, _) | (State::IncompleteFloating, _) =>
-                        return Err("Invalid number");
+                    (State::Integer, _) | (State::Floating, _) | (State::IncompleteFloating, _) => return Err("Invalid number")
 
-                    (State::Symbol, _) => {
-                        accum.push(c);
-                    }
+                    // (State::Symbol, _) => {
+                    //     accum.push(c);
+                    // }
 
-                    _ => return Err("Parse error")
+                    // _ => return Err("Parse error")
                 }
             }
         }
@@ -139,7 +140,7 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
 fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
     match (ast) {
         Ok(sexprs) => {
-            for(s in sexprs) {
+            for(s in sexprs.iter()) {
                 match (s) {
                     Number(n) => println!("Number({})", n);
                     Symbol(x) => println!("Symbol({})", x);
