@@ -1,12 +1,13 @@
 
 static DEFAULT_ATOM_SIZE: uint = 32;
 
-enum SymbolicExpr {
+enum SymbolicExpr<'a> {
     Number(f64),
-    Symbol(&str),
-    ListExpr(Vec<SymbolicExpr>)
+    Symbol(&'a str),
+    ListExpr(Vec<SymbolicExpr<'a>>)
 }
 
+#[derive(PartialEq)]
 enum State {
     Start,
     List,
@@ -18,20 +19,16 @@ enum State {
 
 fn to_atom(state: State, accum: &str) -> Result<SymbolicExpr, &str> {
     match (state) {
-        State::Symbol => {
-            SymbolicExpr::Symbol(accum.to_slice());
-        }
+        State::Symbol => {Ok(SymbolicExpr::Symbol(accum))}
         State::Integer | State::Floating => {
-            match (from_str(accum.to_slice())) {
+            match (from_str::<f64>(accum)) {
                 Some(i) => {
-                    SymbolicExpr::Number(i as f64);
+                    Ok(SymbolicExpr::Number(i))
                 }
-                None => return Err("Cannot parse number")
+                None => Err("Cannot parse number")
             }
         }
-        _ => {
-            return Err("Invalid atom");
-        }
+        _ => Err("Invalid atom")
     }
 }
 
@@ -140,20 +137,24 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
 fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
     match (ast) {
         Ok(sexprs) => {
-            for(s in sexprs.iter()) {
+            for s in sexprs.iter() {
                 match (s) {
-                    Number(n) => println!("Number({})", n);
-                    Symbol(x) => println!("Symbol({})", x);
-                    _ => println!("List");
+                    SymbolicExpr::Number(n) => {
+                        println!("Number({})", n)
+                    }
+                    SymbolicExpr::Symbol(x) => {
+                        println!("Symbol({})", x)
+                    }
+                    _ => println!("List")
                 }
             }
         }
-        Err(s) => println! s;
+        Err(s) => println!("{}", s)
     }
 }
 
 fn main() {
-    let code = "12.3"
+    let code = "12.3";
 
     print_read(read(code));
 }
