@@ -1,5 +1,5 @@
 
-static DEFAULT_ATOM_SIZE: uint = 32;
+static DEFAULT_ATOM_SIZE: usize = 32;
 
 enum SymbolicExpr<'a> {
     Number(f64),
@@ -21,7 +21,7 @@ fn to_atom(state: State, accum: &str) -> Result<SymbolicExpr, &str> {
     match (state) {
         State::Symbol => {Ok(SymbolicExpr::Symbol(accum))}
         State::Integer | State::Floating => {
-            match (from_str::<f64>(accum)) {
+            match (accum.parse::<f64>()) {
                 Some(i) => {
                     Ok(SymbolicExpr::Number(i))
                 }
@@ -44,11 +44,11 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
         match (chars.pop()) {
             None => {
                 if(state != State::Start) {
-                    match (to_atom(state, accum.to_slice())) {
+                    match (to_atom(state, accum.as_slice())) {
                         Ok(sexpr) => {
                             exprs.push(sexpr);
                         }
-                        e @ Err(_) => return e
+                        Err(s) => return Err(s)
                     }
                 }
                 return Ok(exprs)
@@ -57,13 +57,13 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
             // Whitespace which can only terminate atoms
             Some(' ') | Some('\n')| Some('\r') | Some('\t') => {
                 if(state != State::Start) {
-                    match (to_atom(state, accum.to_slice())) {
+                    match (to_atom(state, accum.as_slice())) {
                         Ok(sexpr) => {
                             exprs.push(sexpr);
                             accum.clear();
                             state = State::Start;
                         }
-                        e @ Err(_) => return e
+                        Err(s) => return Err(s)
                     }
                 }
             }
@@ -78,12 +78,12 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
 
                     (State::List, ')') => {
                         if(state != State::Start) {
-                            match (to_atom(state, accum.to_slice())) {
+                            match (to_atom(state, accum.as_slice())) {
                                 Ok(sexpr) => {
                                     exprs.push(sexpr);
                                     accum.clear();
                                 }
-                                e @ Err(_) => return e
+                                Err(s) => return Err(s)
                             }
                         }
                         let list = SymbolicExpr::ListExpr(exprs);
@@ -138,7 +138,7 @@ fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
     match (ast) {
         Ok(sexprs) => {
             for s in sexprs.iter() {
-                match (s) {
+                match (*s) {
                     SymbolicExpr::Number(n) => {
                         println!("Number({})", n)
                     }
