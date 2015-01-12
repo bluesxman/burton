@@ -1,13 +1,13 @@
 
 static DEFAULT_ATOM_SIZE: usize = 32;
 
-enum SymbolicExpr<'a> {
+enum SymbolicExpr {
     Number(f64),
-    Symbol(&'a str),
-    ListExpr(Vec<SymbolicExpr<'a>>)
+    Symbol(String),
+    ListExpr(Vec<SymbolicExpr>)
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy)]
 enum State {
     Start,
     List,
@@ -17,7 +17,23 @@ enum State {
     Floating,
 }
 
-fn to_atom(state: State, accum: &str) -> Result<SymbolicExpr, &str> {
+fn least(x: i32) -> String {
+    let digit = x % 10;
+    let c = digit.to_string().as_slice().chars().next();
+    let mut rval = String::with_capacity(1);
+
+    match (c) {
+        Some(c) => {
+            rval.push(c);
+            rval
+        }
+        None => {
+            rval
+        }
+    }
+}
+
+fn to_atom(state: State, accum: String) -> Result<SymbolicExpr, &'static str> {
     match (state) {
         State::Symbol => {Ok(SymbolicExpr::Symbol(accum))}
         State::Integer | State::Floating => {
@@ -33,18 +49,19 @@ fn to_atom(state: State, accum: &str) -> Result<SymbolicExpr, &str> {
 }
 
 // Non-recursive parse using state machine
-fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
+fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
     let mut accum = String::with_capacity(DEFAULT_ATOM_SIZE);
     let mut chars = code.to_string();
     let mut exprs = Vec::new();
     let mut stack = Vec::new();
     let mut state = State::Start;
 
+
     loop {
         match (chars.pop()) {
             None => {
                 if(state != State::Start) {
-                    match (to_atom(state, accum.as_slice())) {
+                    match (to_atom(state, accum.clone())) {
                         Ok(sexpr) => {
                             exprs.push(sexpr);
                         }
@@ -57,7 +74,7 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
             // Whitespace which can only terminate atoms
             Some(' ') | Some('\n')| Some('\r') | Some('\t') => {
                 if(state != State::Start) {
-                    match (to_atom(state, accum.as_slice())) {
+                    match (to_atom(state, accum.clone())) {
                         Ok(sexpr) => {
                             exprs.push(sexpr);
                             accum.clear();
@@ -78,7 +95,7 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
 
                     (State::List, ')') => {
                         if(state != State::Start) {
-                            match (to_atom(state, accum.as_slice())) {
+                            match (to_atom(state, accum.clone())) {
                                 Ok(sexpr) => {
                                     exprs.push(sexpr);
                                     accum.clear();
@@ -89,7 +106,7 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
                         let list = SymbolicExpr::ListExpr(exprs);
                         state = State::Start;
                         exprs = match stack.pop() {
-                            Some(parent) => {
+                            Some(mut parent) => {
                                 parent.push(list);
                                 parent
                             }
@@ -121,13 +138,15 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &str> {
                         accum.push(c);
                     }
 
-                    (State::Integer, _) | (State::Floating, _) | (State::IncompleteFloating, _) => return Err("Invalid number")
+                    (State::Integer, _) | (State::Floating, _) | (State::IncompleteFloating, _) => {
+                        return Err("Invalid number")
+                    }
 
-                    // (State::Symbol, _) => {
-                    //     accum.push(c);
-                    // }
+                    (State::Symbol, _) => {
+                        accum.push(c);
+                    }
 
-                    // _ => return Err("Parse error")
+                    _ => return Err("Parse error")
                 }
             }
         }
@@ -142,7 +161,7 @@ fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
                     SymbolicExpr::Number(n) => {
                         println!("Number({})", n)
                     }
-                    SymbolicExpr::Symbol(x) => {
+                    SymbolicExpr::Symbol(ref x) => {
                         println!("Symbol({})", x)
                     }
                     _ => println!("List")
