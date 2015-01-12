@@ -10,7 +10,6 @@ enum SymbolicExpr {
 #[derive(PartialEq, Copy)]
 enum State {
     Start,
-    List,
     Symbol,
     Integer,
     IncompleteFloating,
@@ -39,7 +38,6 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
     let mut stack = Vec::new();
     let mut state = State::Start;
 
-
     for c in code.chars() {
         match c {
             // Whitespace which can only terminate atoms
@@ -58,13 +56,22 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
 
             _ => {
                 match (state, c) {
-                    (State::Start, '(') => {
-                        state = State::List;
+                    (_, '(') => {
+                        if state != State::Start {
+                            match to_atom(state, accum.clone()) {
+                                Ok(sexpr) => {
+                                    exprs.push(sexpr);
+                                    accum.clear();
+                                }
+                                Err(s) => return Err(s)
+                            }
+                        }
+                        state = State::Start;
                         stack.push(exprs);
                         exprs = Vec::new();
                     }
 
-                    (State::List, ')') => {
+                    (_, ')') => {
                         if state != State::Start {
                             match to_atom(state, accum.clone()) {
                                 Ok(sexpr) => {
@@ -116,8 +123,6 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
                     (State::Symbol, _) => {
                         accum.push(c);
                     }
-
-                    _ => return Err("Parse error")
                 }
             }
         }
@@ -131,7 +136,12 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
             Err(s) => return Err(s)
         }
     }
-    return Ok(exprs)
+
+    if stack.len() == 0 {
+        return Ok(exprs)
+    } else {
+        return Err("Unmatched '('")
+    }
 }
 
 fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
@@ -155,6 +165,14 @@ fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
 
 fn main() {
     let code = "12.3";
-
     print_read(read(code));
+
+    let sym = "+";
+    print_read(read(sym));
+
+    let list = "()";
+    print_read(read(list));
+
+    let add = "(+ 1 2)";
+    print_read(read(add));
 }
