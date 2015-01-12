@@ -17,27 +17,11 @@ enum State {
     Floating,
 }
 
-fn least(x: i32) -> String {
-    let digit = x % 10;
-    let c = digit.to_string().as_slice().chars().next();
-    let mut rval = String::with_capacity(1);
-
-    match (c) {
-        Some(c) => {
-            rval.push(c);
-            rval
-        }
-        None => {
-            rval
-        }
-    }
-}
-
 fn to_atom(state: State, accum: String) -> Result<SymbolicExpr, &'static str> {
-    match (state) {
+    match state {
         State::Symbol => {Ok(SymbolicExpr::Symbol(accum))}
         State::Integer | State::Floating => {
-            match (accum.parse::<f64>()) {
+            match accum.parse::<f64>() {
                 Some(i) => {
                     Ok(SymbolicExpr::Number(i))
                 }
@@ -51,30 +35,17 @@ fn to_atom(state: State, accum: String) -> Result<SymbolicExpr, &'static str> {
 // Non-recursive parse using state machine
 fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
     let mut accum = String::with_capacity(DEFAULT_ATOM_SIZE);
-    let mut chars = code.to_string();
     let mut exprs = Vec::new();
     let mut stack = Vec::new();
     let mut state = State::Start;
 
 
-    loop {
-        match (chars.pop()) {
-            None => {
-                if(state != State::Start) {
-                    match (to_atom(state, accum.clone())) {
-                        Ok(sexpr) => {
-                            exprs.push(sexpr);
-                        }
-                        Err(s) => return Err(s)
-                    }
-                }
-                return Ok(exprs)
-            }
-
+    for c in code.chars() {
+        match c {
             // Whitespace which can only terminate atoms
-            Some(' ') | Some('\n')| Some('\r') | Some('\t') => {
-                if(state != State::Start) {
-                    match (to_atom(state, accum.clone())) {
+            ' ' | '\n' | '\r' | '\t' => {
+                if state != State::Start {
+                    match to_atom(state, accum.clone()) {
                         Ok(sexpr) => {
                             exprs.push(sexpr);
                             accum.clear();
@@ -85,7 +56,7 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
                 }
             }
 
-            Some(c) => {
+            _ => {
                 match (state, c) {
                     (State::Start, '(') => {
                         state = State::List;
@@ -94,8 +65,8 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
                     }
 
                     (State::List, ')') => {
-                        if(state != State::Start) {
-                            match (to_atom(state, accum.clone())) {
+                        if state != State::Start {
+                            match to_atom(state, accum.clone()) {
                                 Ok(sexpr) => {
                                     exprs.push(sexpr);
                                     accum.clear();
@@ -151,13 +122,23 @@ fn read(code: &str) -> Result<Vec<SymbolicExpr>, &'static str> {
             }
         }
     }
+
+    if state != State::Start {
+        match to_atom(state, accum.clone()) {
+            Ok(sexpr) => {
+                exprs.push(sexpr);
+            }
+            Err(s) => return Err(s)
+        }
+    }
+    return Ok(exprs)
 }
 
 fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
-    match (ast) {
+    match ast {
         Ok(sexprs) => {
             for s in sexprs.iter() {
-                match (*s) {
+                match *s {
                     SymbolicExpr::Number(n) => {
                         println!("Number({})", n)
                     }
