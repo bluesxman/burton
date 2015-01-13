@@ -1,3 +1,4 @@
+use std::fmt;
 
 static DEFAULT_ATOM_SIZE: usize = 32;
 
@@ -5,6 +6,28 @@ enum SymbolicExpr {
     Number(f64),
     Symbol(String),
     ListExpr(Vec<SymbolicExpr>)
+}
+
+// fn to_string(sexpr: &SymbolicExpr) -> String{
+//     match *sexpr {
+//
+//     }
+// }
+
+impl fmt::String for SymbolicExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            SymbolicExpr::Number(num) => write!(f, "(Number {})", num),
+            SymbolicExpr::Symbol(ref sym) => write!(f, "(Symbol {})", sym),
+            SymbolicExpr::ListExpr(ref sexprs) => write!(f, "(List {})", "TODO"),
+        }
+    }
+}
+
+impl fmt::Show for SymbolicExpr {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::String::fmt(self, f)
+    }
 }
 
 #[derive(PartialEq, Copy)]
@@ -148,15 +171,7 @@ fn print_read(ast: Result<Vec<SymbolicExpr>, &str>) {
     match ast {
         Ok(sexprs) => {
             for s in sexprs.iter() {
-                match *s {
-                    SymbolicExpr::Number(n) => {
-                        println!("Number({})", n)
-                    }
-                    SymbolicExpr::Symbol(ref x) => {
-                        println!("Symbol({})", x)
-                    }
-                    _ => println!("List")
-                }
+                println!("{}", s);
             }
         }
         Err(s) => println!("{}", s)
@@ -175,4 +190,7 @@ fn main() {
 
     let add = "(+ 1 2)";
     print_read(read(add));
+
+    let magsqr = "(* (+ 1 2) (+ 3 4))";
+    print_read(read(magsqr));
 }
