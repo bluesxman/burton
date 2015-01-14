@@ -19,7 +19,14 @@ impl fmt::String for SymbolicExpr {
         match *self {
             SymbolicExpr::Number(num) => write!(f, "(Number {})", num),
             SymbolicExpr::Symbol(ref sym) => write!(f, "(Symbol {})", sym),
-            SymbolicExpr::ListExpr(ref sexprs) => write!(f, "(List {})", "TODO"),
+            SymbolicExpr::ListExpr(ref sexprs) => {
+                f.write_str("(List");
+                for s in sexprs.iter() {
+                    f.write_str(" ");
+                    s.fmt(f);
+                }
+                f.write_str(")")
+            }
         }
     }
 }
