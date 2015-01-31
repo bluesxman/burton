@@ -1,3 +1,5 @@
+#![feature(core)]
+#![feature(collections)]
 use std::fmt;
 
 static DEFAULT_ATOM_SIZE: usize = 32;
@@ -8,22 +10,17 @@ enum SymbolicExpr {
     ListExpr(Vec<SymbolicExpr>)
 }
 
-// fn to_string(sexpr: &SymbolicExpr) -> String{
-//     match *sexpr {
-//
-//     }
-// }
 
-impl fmt::String for SymbolicExpr {
+impl fmt::Display for SymbolicExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             SymbolicExpr::Number(num) => write!(f, "(Number {})", num),
             SymbolicExpr::Symbol(ref sym) => write!(f, "(Symbol {})", sym),
             SymbolicExpr::ListExpr(ref sexprs) => {
-                f.write_str("(List");
+                try!(f.write_str("(List"));
                 for s in sexprs.iter() {
-                    f.write_str(" ");
-                    s.fmt(f);
+                    try!(f.write_str(" "));
+                    try!(s.fmt(f));
                 }
                 f.write_str(")")
             }
@@ -31,9 +28,9 @@ impl fmt::String for SymbolicExpr {
     }
 }
 
-impl fmt::Show for SymbolicExpr {
+impl fmt::Debug for SymbolicExpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::String::fmt(self, f)
+        fmt::Display::fmt(self, f)
     }
 }
 
